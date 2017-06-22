@@ -1,6 +1,7 @@
-module Brainfuck.Parser exposing (Command(..), parser)
+module Brainfuck.Parser exposing (Command(..), parse)
 
 import Parser exposing (..)
+import Set exposing (Set)
 
 
 type Command
@@ -13,25 +14,50 @@ type Command
     | Loop (List Command)
 
 
+parse : String -> Result Error (List Command)
+parse code =
+    run parser code
+
+
 parser : Parser (List Command)
 parser =
-    repeat zeroOrMore anyCommand
+    commands |. end
 
 
-anyCommand : Parser Command
-anyCommand =
+commands : Parser (List Command)
+commands =
+    lazy (\_ -> repeat zeroOrMore command)
+
+
+command : Parser Command
+command =
     lazy
         (\_ ->
-            oneOf
-                [ increment
-                , decrement
-                , shiftLeft
-                , shiftRight
-                , outputByte
-                , inputByte
-                , loop
-                ]
+            succeed identity
+                |. ignoreableChars
+                |= oneOf
+                    [ increment
+                    , decrement
+                    , shiftLeft
+                    , shiftRight
+                    , outputByte
+                    , inputByte
+                    , loop
+                    ]
+                |. ignoreableChars
         )
+
+
+ignoreableChars : Parser ()
+ignoreableChars =
+    let
+        commandChars =
+            Set.fromList [ '+', '-', '<', '>', '.', ',', '[', ']' ]
+
+        isIgnorableChar char =
+            not (Set.member char commandChars)
+    in
+        ignore zeroOrMore isIgnorableChar
 
 
 increment : Parser Command
@@ -70,6 +96,6 @@ loop =
         (\_ ->
             succeed Loop
                 |. symbol "["
-                |= parser
+                |= commands
                 |. symbol "]"
         )

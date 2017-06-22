@@ -1,8 +1,7 @@
 module Brainfuck.Interpreter exposing (run)
 
-import Brainfuck.Parser exposing (Command(..), parser)
+import Brainfuck.Parser exposing (Command(..))
 import Brainfuck.Tape as Tape exposing (Tape)
-import Parser
 import Char
 
 
@@ -15,7 +14,7 @@ type alias State =
 
 run : String -> String -> Result String State
 run code input =
-    Parser.run parser code
+    Brainfuck.Parser.parse code
         |> Result.mapError toString
         |> Result.map (List.foldl eval (init input))
 
